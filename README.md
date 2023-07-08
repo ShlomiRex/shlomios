@@ -1,7 +1,4 @@
-# os_from_scratch
+# shlomidos
 
-An attempt to create simplest stupidiest operation system from scrach.
+A basic bootloader written in assembly and basic kernel written in C++.
 
-# Result so far
-
-![](README-assets/Screenshot%202023-07-03%20121502.png)
