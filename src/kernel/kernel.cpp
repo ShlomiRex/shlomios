@@ -5,79 +5,88 @@
 int row = 0;
 int col = 0;
 
-void updateCursorPosition(int row, int column) {
-   int offset = (row * VGA_ROWS) + column;
-	offset = 0;
+void outb(unsigned short port, unsigned char val)
+{
+	asm volatile("outb %0, %1"
+				 :
+				 : "a"(val), "Nd"(port));
+}
 
-   asm volatile(
-		// Write the high byte of the offset to port 0x3D4
-       "mov $0x3D4, %%dx; "
-       "mov $0x0F, %%al; "
-       "out %%al, %%dx; "
-
-		// Write the high byte of the offset
-       "inc %%dx; "
-       "mov %0, %%al; "
-       "out %%al, %%dx; "
-
-		// Write the low byte of the offset to port 0x3D5
-       "mov $0x3D5, %%dx; "
-       "mov $0x0E, %%al; "
-       "out %%al, %%dx; "
-
-		// Write the low byte of the offset
-       "inc %%dx; "
-       "mov %1, %%al; "
-       "out %%al, %%dx"
-
-       :
-       : "r"((unsigned char)(offset >> 8)), "r"((unsigned char)(offset & 0xFF))
-       : "%al", "%dx"
-   );
+void updateCursorPosition(int row, int column)
+{
+	unsigned short position = (row * 80) + column;
+	// cursor LOW port to vga INDEX register
+	outb(0x3D4, 0x0F);
+	outb(0x3D5, (unsigned char)(position & 0xFF));
+	// cursor HIGH port to vga INDEX register
+	outb(0x3D4, 0x0E);
+	outb(0x3D5, (unsigned char)((position >> 8) & 0xFF));
 }
 
 void print_str(char const *str_p, int length)
 {
-	char *vga_buffer = (char *)(VGA_BUFFER_ADDRESS + row * VGA_COLUMNS * 2 + col * 2);
+	char *vga_buffer = (char *)(VGA_BUFFER_ADDRESS);
 	for (int i = 0; i < length; i++)
 	{
-		vga_buffer[i * 2] = str_p[i];
-		vga_buffer[i * 2 + 1] = 0x0F; // White on black
-
-		col += 1;
-
-		if (col > VGA_COLUMNS)
+		if (str_p[i] == '\n')
+		{
+			row++;
+			col = 0;
+			continue;
+		}
+		vga_buffer[(row * VGA_COLUMNS + col) * 2] = str_p[i];
+		vga_buffer[(row * VGA_COLUMNS + col) * 2 + 1] = 0x0F; // White on black
+		col++;
+		if (col >= VGA_COLUMNS)
 		{
 			col = 0;
 			row++;
+		}
+		if (row >= VGA_ROWS)
+		{
+			row = 0;
 		}
 	}
 	updateCursorPosition(row, col);
 }
 
-void debug_print_str(char *str_p, int length) {
-	char *vga_buffer = (char *)(VGA_BUFFER_ADDRESS + row * VGA_COLUMNS * 2 + col * 2);
-	for (int i = 0; i < length; i++)
+void print_char(char c)
+{
+	char *vga_buffer = (char *)(VGA_BUFFER_ADDRESS);
+	vga_buffer[(row * VGA_COLUMNS + col) * 2] = c;
+	vga_buffer[(row * VGA_COLUMNS + col) * 2 + 1] = 0x0F; // White on black
+	col++;
+	if (col >= VGA_COLUMNS)
 	{
-		vga_buffer[i * 2] = str_p[i];
-		vga_buffer[i * 2 + 1] = 0x0F; // White on black
+		col = 0;
+		row++;
 	}
+	if (row >= VGA_ROWS)
+	{
+		row = 0;
+	}
+	updateCursorPosition(row, col);
 }
 
-void clear_screen() {
+void clear_screen()
+{
 	char *vga_buffer = (char *)(VGA_BUFFER_ADDRESS);
 	for (int i = 0; i < VGA_ROWS * VGA_COLUMNS; i++)
 	{
 		vga_buffer[i * 2] = ' ';
 		vga_buffer[i * 2 + 1] = 0x0F; // White on black
 	}
+	row = col = 0;
+	updateCursorPosition(0, 0);
 }
 
 extern "C" int main()
 {
-	// clear_screen();
-	// char const *hello_world = "Hello World!";
-	// print_str(hello_world, 13);
+	clear_screen();
+	print_char('O');
+	print_char('K');
+	print_char(' ');
+	print_char('@');
 
-    return 0;
+	return 0;
 }

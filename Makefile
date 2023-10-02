@@ -14,9 +14,6 @@ SOURCES := $(shell find $(src_kernel_dir) -name "*.cpp")
 # Objects - map .cpp extension to .o extension
 OBJECTS := $(patsubst $(src_kernel_dir)/%.cpp, $(src_kernel_dir)/%.o, $(SOURCES))
 
-test:
-	@echo $(OBJECTS)
-
 all: clean prep build link build_image run
 
 prep:
