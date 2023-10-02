@@ -4,8 +4,19 @@ gnu_ld := "$(HOME)/my_tools/bin/i686-elf-ld"
 src_kernel_dir := src/kernel
 src_bootloader_dir := src/bootloader
 build_dir := build
+SOURCES := $(shell find $(src_kernel_dir) -name '*.cpp')
+
+test:
+	@echo $(SOURCES)
 
 all: build run
+
+# General compile rule
+$(build_dir)/%.o: %.cpp
+	$(gnu_gcc) -nostdlib -nodefaultlibs -ffreestanding -m32 -g -c $< -o $@
+
+compile_cpp: $(SOURCES:.cpp=.o)
+	@echo "Compiling C++ files..."
 
 build:
 # kernel.o
