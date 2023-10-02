@@ -10,6 +10,10 @@ SOURCES = $(wildcard $(SRC_DIR)/*.cpp)
 HEADERS = $(wildcard $(INCLUDE_DIR)/*.h)
 OBJECTS = $(patsubst $(SRC_DIR)/%.cpp,$(SRC_DIR)/%.o,$(SOURCES))
 
+KERNEL_OBJ = kernel.o
+
+all: prep build link build_image run
+
 test:
 	@echo "Sources:"
 	@echo $(SOURCES)
@@ -18,35 +22,34 @@ test:
 	@echo "Objects:"
 	@echo $(OBJECTS)
 
-all: prep build run
-
 prep:
 	@echo "Preparing build directory..."
 	mkdir -p build
 
 build: $(OBJECTS)
-	@echo "Building objects..."
 
-# link: $(OBJECTS)
-# 	@echo "Linking objects..."
-# 	$(CXX) $(LDFLAGS) $^ -o $(BUILD_DIR)/a.out
+# General rule for building objects for CPP files (for kernel object)
+$(SRC_DIR)/%.o: $(SRC_DIR)/%.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# build:
-# # kernel.o
-# 	$(CXX) -nostdlib -nodefaultlibs -ffreestanding -m32 -g -c "$(SRC_DIR)/kernel.cpp" -o "$(BUILD_DIR)/kernel.o"
-# # kernel_entry.o
-# 	nasm "$(src_bootloader_dir)/kernel_entry.asm" -f elf -o "$(BUILD_DIR)/kernel_entry.o"
-# # kernel.bin - link kernel_entry.o and kernel.o
-# 	$(LD) -o "$(BUILD_DIR)/full_kernel.bin" -nostdlib -Ttext 0x1000 "$(BUILD_DIR)/kernel_entry.o" "$(BUILD_DIR)/kernel.o" --oformat binary
-# # boot.bin - bootloader
-# 	nasm -i$(src_bootloader_dir) "$(src_bootloader_dir)/bootsector.asm" -f bin -o "$(BUILD_DIR)/boot.bin"
-# # everything.bin - bootloader + kernel
-# 	cat "$(BUILD_DIR)/boot.bin" "$(BUILD_DIR)/full_kernel.bin" > "$(BUILD_DIR)/everything.bin"
-# # zeroes.bin - zeroes
-# 	nasm -i$(src_bootloader_dir) "$(src_bootloader_dir)/zeroes.asm" -f bin -o "$(BUILD_DIR)/zeroes.bin"
-# # os.bin - everything + zeroes
-# 	cat "$(BUILD_DIR)/everything.bin" "$(BUILD_DIR)/zeroes.bin" > "$(BUILD_DIR)/os.bin"
-# # run
+link: $(OBJECTS)
+	$(LD) $(LDFLAGS) $^ -o $(BUILD_DIR)/$(KERNEL_OBJ)
+
+build_image:
+# kernel_entry.o
+	nasm "$(src_bootloader_dir)/kernel_entry.asm" -f elf -o "$(BUILD_DIR)/kernel_entry.o"
+# kernel.bin - link kernel_entry.o and kernel.o
+	$(LD) -o "$(BUILD_DIR)/full_kernel.bin" -nostdlib -Ttext 0x1000 "$(BUILD_DIR)/kernel_entry.o" "$(BUILD_DIR)/kernel.o" --oformat binary
+# boot.bin - bootloader
+	nasm -i$(src_bootloader_dir) "$(src_bootloader_dir)/bootsector.asm" -f bin -o "$(BUILD_DIR)/boot.bin"
+# everything.bin - bootloader + kernel
+	cat "$(BUILD_DIR)/boot.bin" "$(BUILD_DIR)/full_kernel.bin" > "$(BUILD_DIR)/everything.bin"
+# zeroes.bin - zeroes
+	nasm -i$(src_bootloader_dir) "$(src_bootloader_dir)/zeroes.asm" -f bin -o "$(BUILD_DIR)/zeroes.bin"
+# os.bin - everything + zeroes
+	cat "$(BUILD_DIR)/everything.bin" "$(BUILD_DIR)/zeroes.bin" > "$(BUILD_DIR)/os.bin"
+
+	@echo "\nBuild complete! Run 'make run' to run the OS."
 
 run:
 	qemu-system-x86_64 -drive format=raw,file="$(BUILD_DIR)/os.bin",index=0,if=floppy
@@ -57,3 +60,4 @@ run:
 
 clean:
 	rm -rf $(BUILD_DIR)/*
+	rm -rf $(SRC_DIR)/*.o

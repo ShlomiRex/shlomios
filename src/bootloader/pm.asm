@@ -11,17 +11,17 @@ EnterProtectedMode:
     
     ; Print OK after entering protected mode
     ; Set the VGA address.
-    mov ebx, 0xb8000
+    ; mov ebx, 0xb8000
 
-    add ebx, 0xD4 ; Offset
-    mov al, 0x4F ; 'O'
-    mov ah, 0x07 ; Gray on black background
-    mov [ebx], ax
+    ; add ebx, 0xD4 ; Offset
+    ; mov al, 0x4F ; 'O'
+    ; mov ah, 0x07 ; Gray on black background
+    ; mov [ebx], ax
 
-    add ebx, 0x2 ; Offset
-    mov al, 0x4B ; 'K'
-    mov ah, 0x07 ; Gray on black background
-    mov [ebx], ax
+    ; add ebx, 0x2 ; Offset
+    ; mov al, 0x4B ; 'K'
+    ; mov ah, 0x07 ; Gray on black background
+    ; mov [ebx], ax
 
     jmp CODE_SEG:JumpToKernel ; Far jump to code segment in protected mode, force CPU to flush pipeline
 [BITS 32]
