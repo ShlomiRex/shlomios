@@ -1,1 +1,4 @@
 build/*
+# Ignore all .o files in any directory
+*.o
+./src/kernel/*.o
