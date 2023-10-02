@@ -24,7 +24,6 @@ Start:
     call ClearScreen
     mov SI, hello_msg
     call PrintString
-    call PrintNewLine
 
     ; Check A20 line
     ; call check_a20
@@ -55,6 +54,7 @@ Start:
     DiskError:
         mov SI, disk_error_msg
         call PrintString
+        call PrintNewLine
 
         ; Error code
         mov al, ah
@@ -62,6 +62,9 @@ Start:
         call Print2Hex
         jmp $
     NoDiskError:
+        mov SI, ok_msg
+        call PrintString
+        call PrintNewLine
         jmp EnterProtectedMode
 ; EnableA20: ; Fast A20 method
 ;     in al, 0x92
@@ -124,6 +127,7 @@ Start:
 BOOT_DRIVE db 0
 KERNEL_ADDRESS equ 0x1000 ; Don't start at 0 to avoid overwriting interrupt vector table of the BIOS
 hello_msg db "Running in 16-bit real mode...", 0
+ok_msg db "OK", 0
 disk_error_msg db "Error reading disk, error code: ", 0
 ; a20_enabled_msg db "A20 line enabled", 0
 ; a20_disabled_msg db "A20 line disabled", 0

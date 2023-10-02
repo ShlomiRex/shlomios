@@ -1,7 +1,6 @@
 EnterProtectedMode:
     mov si, enter_pm_msg
     call PrintString
-    call PrintNewLine
 
     ; Enter protected mode
     cli
@@ -9,9 +8,24 @@ EnterProtectedMode:
     mov eax, cr0
     or eax, 0x1 ; Set protected mode bit
     mov cr0, eax
-    jmp CODE_SEG:StartProtectedMode ; Far jump to code segment in protected mode, force CPU to flush pipeline
+    
+    ; Print OK after entering protected mode
+    ; Set the VGA address.
+    mov ebx, 0xb8000
+
+    add ebx, 0xD4 ; Offset
+    mov al, 0x4F ; 'O'
+    mov ah, 0x07 ; Gray on black background
+    mov [ebx], ax
+
+    add ebx, 0x2 ; Offset
+    mov al, 0x4B ; 'K'
+    mov ah, 0x07 ; Gray on black background
+    mov [ebx], ax
+
+    jmp CODE_SEG:JumpToKernel ; Far jump to code segment in protected mode, force CPU to flush pipeline
 [BITS 32]
-StartProtectedMode:
+JumpToKernel:
     ; Initialize segment registers immediately after entering protected mode
     mov ax, DATA_SEG
     mov ds, ax
@@ -29,5 +43,6 @@ StartProtectedMode:
 
     ; Jump to kernel
     jmp KERNEL_ADDRESS
+
 
 enter_pm_msg db "Entering protected mode...", 0
