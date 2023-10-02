@@ -1,6 +1,6 @@
 #include <stdint.h>
 
-#include "string.h"
+#include "string.cpp"
 
 #define VGA_BUFFER_ADDRESS 0xB8000
 #define VGA_ROWS 25

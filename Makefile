@@ -1,46 +1,59 @@
-gnu_gcc := "$(HOME)/my_tools/bin/i686-elf-gcc"
-gnu_ld := "$(HOME)/my_tools/bin/i686-elf-ld"
+CXX := "$(HOME)/my_tools/bin/i686-elf-gcc"
+LD := "$(HOME)/my_tools/bin/i686-elf-ld"
+CXXFLAGS := -nostdlib -nodefaultlibs -ffreestanding -m32 -g
 
-src_kernel_dir := src/kernel
+SRC_DIR := src/kernel
 src_bootloader_dir := src/bootloader
-build_dir := build
-SOURCES := $(shell find $(src_kernel_dir) -name '*.cpp')
+BUILD_DIR := build
+
+SOURCES = $(wildcard $(SRC_DIR)/*.cpp)
+HEADERS = $(wildcard $(INCLUDE_DIR)/*.h)
+OBJECTS = $(patsubst $(SRC_DIR)/%.cpp,$(SRC_DIR)/%.o,$(SOURCES))
 
 test:
+	@echo "Sources:"
 	@echo $(SOURCES)
+	@echo "Headers:"
+	@echo $(HEADERS)
+	@echo "Objects:"
+	@echo $(OBJECTS)
 
-all: build run
+all: prep build run
 
-# General compile rule
-$(build_dir)/%.o: %.cpp
-	$(gnu_gcc) -nostdlib -nodefaultlibs -ffreestanding -m32 -g -c $< -o $@
+prep:
+	@echo "Preparing build directory..."
+	mkdir -p build
 
-compile_cpp: $(SOURCES:.cpp=.o)
-	@echo "Compiling C++ files..."
+build: $(OBJECTS)
+	@echo "Building objects..."
 
-build:
-# kernel.o
-	$(gnu_gcc) -nostdlib -nodefaultlibs -ffreestanding -m32 -g -c "$(src_kernel_dir)/kernel.cpp" -o "$(build_dir)/kernel.o"
-# kernel_entry.o
-	nasm "$(src_bootloader_dir)/kernel_entry.asm" -f elf -o "$(build_dir)/kernel_entry.o"
-# kernel.bin - link kernel_entry.o and kernel.o
-	$(gnu_ld) -o "$(build_dir)/full_kernel.bin" -nostdlib -Ttext 0x1000 "$(build_dir)/kernel_entry.o" "$(build_dir)/kernel.o" --oformat binary
-# boot.bin - bootloader
-	nasm -i$(src_bootloader_dir) "$(src_bootloader_dir)/bootsector.asm" -f bin -o "$(build_dir)/boot.bin"
-# everything.bin - bootloader + kernel
-	cat "$(build_dir)/boot.bin" "$(build_dir)/full_kernel.bin" > "$(build_dir)/everything.bin"
-# zeroes.bin - zeroes
-	nasm -i$(src_bootloader_dir) "$(src_bootloader_dir)/zeroes.asm" -f bin -o "$(build_dir)/zeroes.bin"
-# os.bin - everything + zeroes
-	cat "$(build_dir)/everything.bin" "$(build_dir)/zeroes.bin" > "$(build_dir)/os.bin"
-# run
+# link: $(OBJECTS)
+# 	@echo "Linking objects..."
+# 	$(CXX) $(LDFLAGS) $^ -o $(BUILD_DIR)/a.out
+
+# build:
+# # kernel.o
+# 	$(CXX) -nostdlib -nodefaultlibs -ffreestanding -m32 -g -c "$(SRC_DIR)/kernel.cpp" -o "$(BUILD_DIR)/kernel.o"
+# # kernel_entry.o
+# 	nasm "$(src_bootloader_dir)/kernel_entry.asm" -f elf -o "$(BUILD_DIR)/kernel_entry.o"
+# # kernel.bin - link kernel_entry.o and kernel.o
+# 	$(LD) -o "$(BUILD_DIR)/full_kernel.bin" -nostdlib -Ttext 0x1000 "$(BUILD_DIR)/kernel_entry.o" "$(BUILD_DIR)/kernel.o" --oformat binary
+# # boot.bin - bootloader
+# 	nasm -i$(src_bootloader_dir) "$(src_bootloader_dir)/bootsector.asm" -f bin -o "$(BUILD_DIR)/boot.bin"
+# # everything.bin - bootloader + kernel
+# 	cat "$(BUILD_DIR)/boot.bin" "$(BUILD_DIR)/full_kernel.bin" > "$(BUILD_DIR)/everything.bin"
+# # zeroes.bin - zeroes
+# 	nasm -i$(src_bootloader_dir) "$(src_bootloader_dir)/zeroes.asm" -f bin -o "$(BUILD_DIR)/zeroes.bin"
+# # os.bin - everything + zeroes
+# 	cat "$(BUILD_DIR)/everything.bin" "$(BUILD_DIR)/zeroes.bin" > "$(BUILD_DIR)/os.bin"
+# # run
 
 run:
-	qemu-system-x86_64 -drive format=raw,file="$(build_dir)/os.bin",index=0,if=floppy
+	qemu-system-x86_64 -drive format=raw,file="$(BUILD_DIR)/os.bin",index=0,if=floppy
 
-dump_kernel:
-# View what the kernel does in assembly
-	$(HOME)/my_tools/i686-elf/bin/objdump -D -b binary -mi386 -s -S -f $(build_dir)/full_kernel.bin
+# dump_kernel:
+# # View what the kernel does in assembly
+# 	$(HOME)/my_tools/i686-elf/bin/objdump -D -b binary -mi386 -s -S -f $(BUILD_DIR)/full_kernel.bin
 
 clean:
-	rm -rf $(build_dir)/*
+	rm -rf $(BUILD_DIR)/*
