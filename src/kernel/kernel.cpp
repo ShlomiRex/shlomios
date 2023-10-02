@@ -23,33 +23,6 @@ void updateCursorPosition(int row, int column)
 	outb(0x3D5, (unsigned char)((position >> 8) & 0xFF));
 }
 
-void print_str(char const *str_p, int length)
-{
-	char *vga_buffer = (char *)(VGA_BUFFER_ADDRESS);
-	for (int i = 0; i < length; i++)
-	{
-		if (str_p[i] == '\n')
-		{
-			row++;
-			col = 0;
-			continue;
-		}
-		vga_buffer[(row * VGA_COLUMNS + col) * 2] = str_p[i];
-		vga_buffer[(row * VGA_COLUMNS + col) * 2 + 1] = 0x0F; // White on black
-		col++;
-		if (col >= VGA_COLUMNS)
-		{
-			col = 0;
-			row++;
-		}
-		if (row >= VGA_ROWS)
-		{
-			row = 0;
-		}
-	}
-	updateCursorPosition(row, col);
-}
-
 void print_char(char c)
 {
 	char *vga_buffer = (char *)(VGA_BUFFER_ADDRESS);
@@ -68,6 +41,14 @@ void print_char(char c)
 	updateCursorPosition(row, col);
 }
 
+void print_str(const char *str, int len)
+{
+	for (int i = 0; i < len; i++)
+	{
+		print_char(str[i]);
+	}
+}
+
 void clear_screen()
 {
 	char *vga_buffer = (char *)(VGA_BUFFER_ADDRESS);
@@ -83,10 +64,23 @@ void clear_screen()
 extern "C" int main()
 {
 	clear_screen();
-	print_char('O');
-	print_char('K');
-	print_char(' ');
-	print_char('@');
+
+	
+	char const* str = "ABC";
+	print_char(str[0]);
+	print_char(str[1]);
+	print_char(str[2]);
+	print_char(str[3]);
+	print_char(str[4]);
+	print_char(str[5]);
+	print_char(str[6]);
+	print_char(str[7]);
+	print_char(str[8]);
+	print_char(str[9]);
+	print_char(str[10]);
+	print_char(str[11]);
+
+	print_char('A');
 
 	return 0;
 }

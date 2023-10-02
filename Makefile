@@ -33,6 +33,7 @@ link: $(OBJECTS)
 
 # Build final OS image (bootloader + kernel)
 build_image:
+	@echo "Building OS image..."
 # kernel_entry.o
 	nasm "$(src_bootloader_dir)/kernel_entry.asm" -f elf -o "$(BUILD_DIR)/kernel_entry.o"
 # kernel.bin - link kernel_entry.o and kernel.o
@@ -45,9 +46,12 @@ build_image:
 	nasm -i$(src_bootloader_dir) "$(src_bootloader_dir)/zeroes.asm" -f bin -o "$(BUILD_DIR)/zeroes.bin"
 # os.bin - everything + zeroes
 	cat "$(BUILD_DIR)/everything.bin" "$(BUILD_DIR)/zeroes.bin" > "$(BUILD_DIR)/os.bin"
+	@echo "Building OS image complete"
 
 run:
+	@echo "Running QEMU..."
 	qemu-system-x86_64 -drive format=raw,file="$(BUILD_DIR)/os.bin",index=0,if=floppy
+	@echo "QEMU complete"
 
 dump_kernel:
 # View what the kernel does in assembly
