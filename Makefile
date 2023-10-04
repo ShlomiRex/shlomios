@@ -1,7 +1,7 @@
 CXX := $(HOME)/my_tools/bin/i686-elf-gcc
 LD := $(HOME)/my_tools/bin/i686-elf-ld
 
-CXXFLAGS := -nostdlib -nodefaultlibs -ffreestanding -m32 -g
+CXXFLAGS := -nostdlib -nodefaultlibs -ffreestanding -m32 -g -std=c++17 -Wextra -Wall -O2
 LDFLAGS := -melf_i386 -Ttext 0x1000
 
 src_kernel_dir := src/kernel
@@ -15,6 +15,8 @@ SOURCES := $(shell find $(src_kernel_dir) -name "*.cpp")
 OBJECTS := $(patsubst $(src_kernel_dir)/%.cpp, $(src_kernel_dir)/%.o, $(SOURCES))
 
 all: clean prep build link build_image run
+
+all2: clean prep build link build_image
 
 prep:
 	mkdir -p $(BUILD_DIR)
@@ -55,9 +57,14 @@ run:
 
 dump_kernel:
 # View what the kernel does in assembly
-	$(HOME)/my_tools/i686-elf/bin/objdump -D -b binary -mi386 -s -S -f $(BUILD_DIR)/full_kernel.bin
+#$(HOME)/my_tools/i686-elf/bin/objdump -D -b binary -mi386 -s -S -f $(BUILD_DIR)/full_kernel.bin
+	$(HOME)/my_tools/i686-elf/bin/objdump -D -b binary -mi386 -s -S -f src/kernel/kernel.o
 
 clean:
 	rm -rf ./$(BUILD_DIR)/*
 	find ./$(src_kernel_dir) -name "*.o" -type f -delete
 	@echo "Clean complete"
+
+bochs:
+	nasm src/test.asm -o build/test.bin -f bin
+	bochs -f bochsrc.bxrc -q

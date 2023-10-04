@@ -1,0 +1,5 @@
+# Floppy Disk configuration
+floppya: 1_44=build/test.bin, status=inserted
+
+# Boot from floppy first
+boot: floppy
