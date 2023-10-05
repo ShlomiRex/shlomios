@@ -3,3 +3,4 @@ build/*
 *.o
 ./src/kernel/*.o
 .idea/*
+*.bin

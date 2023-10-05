@@ -1,63 +1,47 @@
-CXX := "$(HOME)/my_tools/bin/i686-elf-gcc"
-LD := "$(HOME)/my_tools/bin/i686-elf-ld"
-CXXFLAGS := -nostdlib -nodefaultlibs -ffreestanding -m32 -g
+C_SOURCES = $(wildcard kernel/*.c drivers/*.c)
+HEADERS = $(wildcard kernel/*.h drivers/*.h)
+# Nice syntax for file extension replacement
+OBJ = ${C_SOURCES:.c=.o}
 
-SRC_DIR := src/kernel
-src_bootloader_dir := src/bootloader
-BUILD_DIR := build
+# Change this if your cross-compiler is somewhere else
+CC = $(HOME)/my_tools/bin/i686-elf-gcc
+GDB = $(HOME)/my_tools/bin/i686-elf-gdb
+# -g: Use debugging symbols in gcc
+CFLAGS = -g
 
-SOURCES = $(wildcard $(SRC_DIR)/*.cpp)
-HEADERS = $(wildcard $(INCLUDE_DIR)/*.h)
-OBJECTS = $(patsubst $(SRC_DIR)/%.cpp,$(SRC_DIR)/%.o,$(SOURCES))
+# First rule is run by default
+os-image.bin: boot/bootsect.bin kernel.bin
+	cat $^ > os-image.bin
 
-KERNEL_OBJ = kernel.o
+# '--oformat binary' deletes all symbols as a collateral, so we don't need
+# to 'strip' them manually on this case
+kernel.bin: boot/kernel_entry.o ${OBJ}
+	$(HOME)/my_tools/bin/i686-elf-ld -o $@ -Ttext 0x1000 $^ --oformat binary
 
-all: prep build link build_image run
+# Used for debugging purposes
+kernel.elf: boot/kernel_entry.o ${OBJ}
+	$(HOME)/my_tools/bin/i686-elf-ld -o $@ -Ttext 0x1000 $^ 
 
-test:
-	@echo "Sources:"
-	@echo $(SOURCES)
-	@echo "Headers:"
-	@echo $(HEADERS)
-	@echo "Objects:"
-	@echo $(OBJECTS)
+run: os-image.bin
+	qemu-system-i386 -fda os-image.bin
 
-prep:
-	@echo "Preparing build directory..."
-	mkdir -p build
+# Open the connection to qemu and load our kernel-object file with symbols
+debug: os-image.bin kernel.elf
+	qemu-system-i386 -s -fda os-image.bin &
+	${GDB} -ex "target remote localhost:1234" -ex "symbol-file kernel.elf"
 
-build: $(OBJECTS)
+# Generic rules for wildcards
+# To make an object, always compile from its .c
+%.o: %.c ${HEADERS}
+	${CC} ${CFLAGS} -ffreestanding -c $< -o $@
 
-# General rule for building objects for CPP files (for kernel object)
-$(SRC_DIR)/%.o: $(SRC_DIR)/%.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+%.o: %.asm
+	nasm $< -f elf -o $@
 
-link: $(OBJECTS)
-	$(LD) $(LDFLAGS) $^ -o $(BUILD_DIR)/$(KERNEL_OBJ)
-
-build_image:
-# kernel_entry.o
-	nasm "$(src_bootloader_dir)/kernel_entry.asm" -f elf -o "$(BUILD_DIR)/kernel_entry.o"
-# kernel.bin - link kernel_entry.o and kernel.o
-	$(LD) -o "$(BUILD_DIR)/full_kernel.bin" -nostdlib -Ttext 0x1000 "$(BUILD_DIR)/kernel_entry.o" "$(BUILD_DIR)/kernel.o" --oformat binary
-# boot.bin - bootloader
-	nasm -i$(src_bootloader_dir) "$(src_bootloader_dir)/bootsector.asm" -f bin -o "$(BUILD_DIR)/boot.bin"
-# everything.bin - bootloader + kernel
-	cat "$(BUILD_DIR)/boot.bin" "$(BUILD_DIR)/full_kernel.bin" > "$(BUILD_DIR)/everything.bin"
-# zeroes.bin - zeroes
-	nasm -i$(src_bootloader_dir) "$(src_bootloader_dir)/zeroes.asm" -f bin -o "$(BUILD_DIR)/zeroes.bin"
-# os.bin - everything + zeroes
-	cat "$(BUILD_DIR)/everything.bin" "$(BUILD_DIR)/zeroes.bin" > "$(BUILD_DIR)/os.bin"
-
-	@echo "\nBuild complete! Run 'make run' to run the OS."
-
-run:
-	qemu-system-x86_64 -drive format=raw,file="$(BUILD_DIR)/os.bin",index=0,if=floppy
-
-# dump_kernel:
-# # View what the kernel does in assembly
-# 	$(HOME)/my_tools/i686-elf/bin/objdump -D -b binary -mi386 -s -S -f $(BUILD_DIR)/full_kernel.bin
+%.bin: %.asm
+	nasm $< -f bin -o $@
 
 clean:
-	rm -rf $(BUILD_DIR)/*
-	rm -rf $(SRC_DIR)/*.o
+	rm -rf *.bin *.dis *.o os-image.bin *.elf
+	rm -rf kernel/*.o boot/*.bin drivers/*.o boot/*.o
+
