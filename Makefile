@@ -1,46 +1,41 @@
-gnu_gcc := "$(HOME)/my_tools/bin/i686-elf-gcc"
-gnu_ld := "$(HOME)/my_tools/bin/i686-elf-ld"
+# $@ = target file
+# $< = first dependency
+# $^ = all dependencies
 
-src_kernel_dir := src/kernel
-src_bootloader_dir := src/bootloader
-build_dir := build
-SOURCES := $(shell find $(src_kernel_dir) -name '*.cpp')
+CXX = $(HOME)/my_tools/bin/i686-elf-gcc
+LD = $(HOME)/my_tools/bin/i686-elf-ld
 
-test:
-	@echo $(SOURCES)
+CXXFLAGS = -ffreestanding
 
-all: build run
+DIR_BOOTLOADER = src/bootloader
+DIR_KERNEL = src/kernel
 
-# General compile rule
-$(build_dir)/%.o: %.cpp
-	$(gnu_gcc) -nostdlib -nodefaultlibs -ffreestanding -m32 -g -c $< -o $@
+all: run
 
-compile_cpp: $(SOURCES:.cpp=.o)
-	@echo "Compiling C++ files..."
+build: os-image.bin
 
-build:
-# kernel.o
-	$(gnu_gcc) -nostdlib -nodefaultlibs -ffreestanding -m32 -g -c "$(src_kernel_dir)/kernel.cpp" -o "$(build_dir)/kernel.o"
-# kernel_entry.o
-	nasm "$(src_bootloader_dir)/kernel_entry.asm" -f elf -o "$(build_dir)/kernel_entry.o"
-# kernel.bin - link kernel_entry.o and kernel.o
-	$(gnu_ld) -o "$(build_dir)/full_kernel.bin" -nostdlib -Ttext 0x1000 "$(build_dir)/kernel_entry.o" "$(build_dir)/kernel.o" --oformat binary
-# boot.bin - bootloader
-	nasm -i$(src_bootloader_dir) "$(src_bootloader_dir)/bootsector.asm" -f bin -o "$(build_dir)/boot.bin"
-# everything.bin - bootloader + kernel
-	cat "$(build_dir)/boot.bin" "$(build_dir)/full_kernel.bin" > "$(build_dir)/everything.bin"
-# zeroes.bin - zeroes
-	nasm -i$(src_bootloader_dir) "$(src_bootloader_dir)/zeroes.asm" -f bin -o "$(build_dir)/zeroes.bin"
-# os.bin - everything + zeroes
-	cat "$(build_dir)/everything.bin" "$(build_dir)/zeroes.bin" > "$(build_dir)/os.bin"
-# run
+# Notice how dependencies are built as needed
+kernel.bin: kernel_entry.o kernel.o
+	$(LD) -o $@ -Ttext 0x1000 $^ --oformat binary
 
-run:
-	qemu-system-x86_64 -drive format=raw,file="$(build_dir)/os.bin",index=0,if=floppy
+kernel_entry.o: $(DIR_BOOTLOADER)/kernel_entry.asm
+	nasm $< -f elf -o $@
 
-dump_kernel:
-# View what the kernel does in assembly
-	$(HOME)/my_tools/i686-elf/bin/objdump -D -b binary -mi386 -s -S -f $(build_dir)/full_kernel.bin
+kernel.o: $(DIR_KERNEL)/kernel.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# Rule to disassemble the kernel - may be useful to debug
+kernel.dis: kernel.bin
+	ndisasm -b 32 $< > $@
+
+bootsect.bin: $(DIR_BOOTLOADER)/bootsect.asm
+	nasm -i$(DIR_BOOTLOADER) $< -f bin -o $@
+
+os-image.bin: bootsect.bin kernel.bin
+	cat $^ > $@
+
+run: os-image.bin
+	qemu-system-i386 -fda $<
 
 clean:
-	rm -rf $(build_dir)/*
+	rm *.bin *.o *.dis

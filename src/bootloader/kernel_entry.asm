@@ -1,8 +1,4 @@
-; This program will be compiled into an ELF object file, since we need to link it.
-; It will be loaded into kernel position we defined in our bootloader.
-
-[BITS 32]
-[extern main]
-
-call main
+[bits 32]
+[extern main] ; Define calling point. Must have same name as kernel.c 'main' function
+call main ; Calls the C function. The linker will know where it is placed in memory
 jmp $
