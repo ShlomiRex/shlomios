@@ -11,7 +11,7 @@ void main() {
     kprint("Hello, World!8\n");
     kprint("Hello, World!9\n");
     kprint("Hello, World!10\n");
-    
+
     kprint("Hello, World!11\n");
     kprint("Hello, World!12\n");
     kprint("Hello, World!13\n");
@@ -33,4 +33,9 @@ void main() {
     kprint("Hello, World!28\n");
     kprint("Hello, World!29\n");
     kprint("Hello, World!30\n");
+
+    // int a = 3;
+    // int b = 0;
+    // int c = a / b;
+    // kprint("Hello, World!31\n");
 }
