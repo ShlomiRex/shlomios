@@ -1,6 +1,10 @@
 #include "../drivers/screen.h"
+#include "util.h"
+// #include "../cpu/isr.h"
+// #include "../cpu/idt.h"
 
 void main() {
+    clear_screen();
     kprint("Hello, World!1\n");
     kprint("Hello, World!2\n");
     kprint("Hello, World!3\n");
@@ -12,30 +16,8 @@ void main() {
     kprint("Hello, World!9\n");
     kprint("Hello, World!10\n");
 
-    kprint("Hello, World!11\n");
-    kprint("Hello, World!12\n");
-    kprint("Hello, World!13\n");
-    kprint("Hello, World!14\n");
-    kprint("Hello, World!15\n");
-    kprint("Hello, World!16\n");
-    kprint("Hello, World!17\n");
-    kprint("Hello, World!18\n");
-    kprint("Hello, World!19\n");
-
-    kprint("Hello, World!20\n");
-    kprint("Hello, World!21\n");
-    kprint("Hello, World!22\n");
-    kprint("Hello, World!23\n");
-    kprint("Hello, World!24\n");
-    kprint("Hello, World!25\n");
-    kprint("Hello, World!26\n");
-    kprint("Hello, World!27\n");
-    kprint("Hello, World!28\n");
-    kprint("Hello, World!29\n");
-    kprint("Hello, World!30\n");
-
-    // int a = 3;
-    // int b = 0;
-    // int c = a / b;
-    // kprint("Hello, World!31\n");
+    isr_install();
+    /* Test the interrupts */
+    __asm__ __volatile__("int $2");
+    __asm__ __volatile__("int $3");
 }

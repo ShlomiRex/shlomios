@@ -4,3 +4,5 @@ build/*
 ./src/kernel/*.o
 .idea/*
 *.bin
+.DS_Store
+.vscode/
